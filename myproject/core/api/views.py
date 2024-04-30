@@ -18,6 +18,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework import permissions # type: ignore
 from rest_framework.authentication import TokenAuthentication # type: ignore
 from rest_framework.authtoken.models import Token # type: ignore
+from django.http import JsonResponse
 
 # GET request API 
 # ------------------------------------------------------------------------------------------------------------------------------
@@ -26,14 +27,51 @@ from rest_framework.authtoken.models import Token # type: ignore
 # get product 
 @api_view(['GET'])
 def get_all_product(request):
-    product = Product.objects.all() 
-    serializer = ProductSerializer(product, many=True)
-    return Response(serializer.data)
+    products = Product.objects.all() 
+    all_products = []
+    for product in products:
+        relate_products = Product.objects.filter(group=product.group).exclude(id=product.id)
+        list_color = []
+        data = []
+        queryset = [product] + list(relate_products)
+        for relate_product in queryset: 
+            id = relate_product.id
+            relate_product_sku = ProductSKU.objects.filter(product=relate_product).first()
+            color = relate_product.color_attribute
+            
+            list_color.append({'id': relate_product_sku.id, 'color': color.en_value, 'colorName': color.ru_value})
+            productSKU = ProductSKU.objects.filter(product=relate_product).first()
+            data.append({
+                "id": id,
+                "color": str(color.en_value), 
+                "id_sku": productSKU.id,
+            })
+        properties = { 
+            "id": product.id,
+            "id_sku" : ProductSKU.objects.filter(product=product).first().id,
+            "name": product.name,
+            "price": str(productSKU.price), 
+            "img_base": product.img_base,
+            "img_hover": product.img_hover,
+            "product_relate": data,
+            "color": list_color,
+            "category": product.category.en_name,
+            "tag": product.tag,
+        }
+        all_products.append(properties)
+
+    return Response(all_products)
 
 @api_view(['GET'])
 def get_product_ID(request, id):
     product = get_object_or_404(Product, id=id)
     serializer = ProductSerializer(product)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def get_product_sku_ID(request, id):
+    product = get_object_or_404(ProductSKU, id=id)
+    serializer = ProductSKUSerializer(product)
     return Response(serializer.data)
 
 @api_view(['GET'])
@@ -49,22 +87,52 @@ def get_image_product(request, name_product):
     return Response(images)    
 
 @api_view(['GET'])
-def get_products_by_category(request, ru_category):
-
+def get_products_by_category(request, en_category):
     def get_products(category):
         products = Product.objects.filter(category=category)
-        # for product in products:
-            # print(product.name, ' ', product.category)
         child_categories = Category.objects.filter(parent_category=category)
         for child_category in child_categories:
             products |= get_products(child_category)
         return products
 
     try:
-        category = Category.objects.get(ru_name=ru_category)
+        category = Category.objects.get(en_name=en_category)
         products = get_products(category)
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data)
+        all_products = []
+        for product in products:
+            relate_products = Product.objects.filter(group=product.group).exclude(id=product.id)
+            list_color = []
+            data = []
+            queryset = [product] + list(relate_products)
+            for relate_product in queryset: 
+                id = relate_product.id
+                relate_product_sku = ProductSKU.objects.filter(product=relate_product).first()
+                color = relate_product.color_attribute
+                
+                list_color.append({'id': relate_product_sku.id, 'color': color.en_value, 'colorName': color.ru_value})
+                productSKU = ProductSKU.objects.filter(product=relate_product).first()
+                data.append({
+                    "id": id,
+                    "color": str(color.en_value), 
+                    "id_sku": productSKU.id,
+                })
+            properties = { 
+                "id": product.id,
+                "id_sku" : ProductSKU.objects.filter(product=product).first().id,
+                "name": product.name,
+                "price": str(productSKU.price), 
+                "img_base": product.img_base,
+                "img_hover": product.img_hover,
+                "product_relate": data,
+                "color": list_color,
+                "category": product.category.en_name,
+                "tag": product.tag,
+            }
+            all_products.append(properties)
+
+        return Response(all_products)  
+        # serializer = ProductSerializer(products, many=True)
+        # return Response(serializer.data)
     except Category.DoesNotExist:
         return Response({"error": "Category does not exist"}, status=404)
 
@@ -103,6 +171,68 @@ def get_product_properties(request, name_product, size=0, color=''):
             properties['price'] = None  # No product SKU found, set price to None
 
     return Response(properties)
+
+# get product sku detail
+@api_view(['GET'])
+def get_product_sku_details(request, id):
+    product_sku = get_object_or_404(ProductSKU, id=id)
+    # serializer = ProductSKUSerializer(product_sku)
+    product = product_sku.product
+    products_by_group_id = Product.objects.filter(group=product.group.id)
+    other_products = []
+    for item in products_by_group_id:
+        # if item.id != product.id:
+        new_product = {
+            'id': item.id,
+            'ru_color': item.color_attribute.ru_value,
+            'en_color': item.color_attribute.en_value
+        }
+        other_products.append(new_product)
+
+    
+    all_product_skus = []
+    all_colors = []
+    for product_item in products_by_group_id:
+        product_skus_by_product_id = ProductSKU.objects.filter(product=product_item)
+        product_color_ru = product_item.color_attribute.ru_value
+        product_color_en = product_item.color_attribute.en_value
+        color_item = {'en_color': product_color_en, 'ru_color': product_color_ru}
+        if color_item not in all_colors:
+            all_colors.append(color_item)
+        for item in product_skus_by_product_id:
+            found_product_sku = {
+                "id": item.id,
+                "ru_color": product_item.color_attribute.ru_value,
+                "color": product_item.color_attribute.en_value,
+                "size": item.size_attribute.value,
+                "status": "ok"
+            }
+            all_product_skus.append(found_product_sku)
+
+    product_sku_details = {
+        'id': product_sku.id,
+        'price': product_sku.price,
+        'size': product_sku.size_attribute.value,
+        'quantity': product_sku.quantity,
+        'product_id': product.id,
+        'name': product.name,
+        'img_base': product.img_base,
+        'img_hover': product.img_hover,
+        'img_details_1': product.img_details_1,
+        'img_details_2': product.img_details_2,
+        'ru_category': product.category.ru_name,
+        'en_category': product.category.en_name,
+        'ru_color': product.color_attribute.ru_value,
+        'en_color': product.color_attribute.en_value,
+        'status': "ok",
+        'group_id': product.group.id,
+        'description': product.group.description,
+        # 'other_products': other_products,
+        'all_product_skus': all_product_skus,
+        'all_colors': all_colors
+    }
+    return Response(product_sku_details)
+    # return Response(serializer.data)
 
 # get shopping sessions
 

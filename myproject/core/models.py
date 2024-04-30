@@ -6,9 +6,9 @@ from django.utils import timezone
 
 class Category(models.Model):
     # id = models.AutoField(primary_key=True)
-    ru_name = models.CharField(primary_key=True, max_length=255, default='')
+    en_name = models.CharField(primary_key=True, max_length=255, default='')
+    ru_name = models.CharField(max_length=255, default='')
     parent_category = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True)
-    en_name = models.CharField(max_length=255, default='')
     description = models.CharField(max_length=255, default='', blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -20,13 +20,13 @@ class ProductSize(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
 class ProductColor(models.Model):
-    ru_value = models.CharField(primary_key=True, max_length=255, default='')
-    en_value = models.CharField(max_length=255, default='')
+    en_value = models.CharField(primary_key=True, max_length=255, default='')
+    ru_value = models.CharField(max_length=255, default='')
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
 class ProductGroup(models.Model):
-    group_id = models.CharField(primary_key=True, max_length=255, default='')
+    id = models.CharField(primary_key=True, max_length=255, default='')
     description = models.CharField(max_length=255, default='')
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -43,6 +43,7 @@ class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     color_attribute = models.ForeignKey(ProductColor, on_delete=models.CASCADE)
     group = models.ForeignKey(ProductGroup, on_delete=models.CASCADE)
+    tag = models.CharField(max_length=255, default='', blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)
 

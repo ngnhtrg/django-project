@@ -9,6 +9,7 @@ from .models import Cart
 from .models import CartItem
 from .models import OrderDetails
 from .models import OrderItem
+from .models import ProductGroup
 
 admin.site.register(Category)
 admin.site.register(Product)
@@ -20,3 +21,4 @@ admin.site.register(Cart)
 admin.site.register(CartItem)
 admin.site.register(OrderDetails)
 admin.site.register(OrderItem)
+admin.site.register(ProductGroup)
