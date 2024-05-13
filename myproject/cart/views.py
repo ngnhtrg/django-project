@@ -20,7 +20,6 @@ from django.http import JsonResponse
 
 @api_view(['POST'])
 def add_to_cart(request, product_sku_id, session_key, quantity):
-    # print(session_id)
     if session_key == "undefined":
         print(session_key)
         request.session.create()
