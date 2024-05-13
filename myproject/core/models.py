@@ -59,6 +59,7 @@ class ProductSKU(models.Model):
 
 class ShoppingSession(models.Model):
     id = models.AutoField(primary_key=True)
+    session_key = models.CharField(blank=True, max_length=255)
     created_at = models.DateTimeField(default=timezone.now)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
